@@ -90,7 +90,7 @@ const gescorpgoCompressedImagesDevBucketPolicy = new aws.s3.BucketPolicy(
 const layersDevBucket = new aws.s3.Bucket(
   `gescorpgo-layers-${pulumi.getStack()}-bucket`,
   {
-    bucket: `gescorpgo-report-service-${pulumi.getStack()}-bucket`,
+    bucket: `gescorpgo-layers-${pulumi.getStack()}-bucket`,
   }
 )
 
