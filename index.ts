@@ -87,19 +87,26 @@ const gescorpgoCompressedImagesDevBucketPolicy = new aws.s3.BucketPolicy(
   { dependsOn: [gescorpgoCompressedImagesDevBucketPublicAccessBlock] }
 )
 
+const layersDevBucket = new aws.s3.Bucket(
+  `gescorpgo-layers-${pulumi.getStack()}-bucket`,
+  {
+    bucket: `gescorpgo-report-service-${pulumi.getStack()}-bucket`,
+  }
+)
+
 const devApiGateway = new aws.apigateway.RestApi('DevApiGateway', {
   name: 'DevApiGateway',
   description: 'DEV Api Gateway',
 })
 
-new aws.ssm.Parameter('/dev/api-gateway/id', {
+new aws.ssm.Parameter('dev-api-gateway-id', {
   name: '/dev/api-gateway/id',
   type: 'String',
   value: devApiGateway.id,
   overwrite: true,
 })
 
-new aws.ssm.Parameter('/dev/api-gateway/root-resource-id', {
+new aws.ssm.Parameter('dev-api-gateway-root-resource-id', {
   name: '/dev/api-gateway/root-resource-id',
   type: 'String',
   value: devApiGateway.rootResourceId,
@@ -112,3 +119,4 @@ export const apiGatewayRootResourceId = devApiGateway.rootResourceId
 export const reportServiceDevBucketName = reportServiceDevBucket.bucket
 export const gescorpgoCompressedImagesDevBucketName =
   gescorpgoCompressedImagesDevBucket.bucket
+export const layersDevBucketName = layersDevBucket.bucket
