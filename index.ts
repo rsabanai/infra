@@ -1,11 +1,55 @@
 import * as aws from '@pulumi/aws'
 import * as pulumi from '@pulumi/pulumi'
 
+const agentAiAssetsBucket = new aws.s3.Bucket(
+  `gescorpgo-${pulumi.getStack()}-agent-ai-assets-bucket`,
+  {
+    bucket: `gescorpgo-${pulumi.getStack()}-agent-ai-assets-bucket`,
+  },
+  { protect: true }
+)
+
+// Allow public access to the bucket
+const agentAiAssetsBucketPublicAccessBlock = new aws.s3.BucketPublicAccessBlock(
+  `gescorpgo-${pulumi.getStack()}-agent-ai-assets-bucket-public-access-block`,
+  {
+    bucket: agentAiAssetsBucket.id,
+    blockPublicAcls: true,
+    blockPublicPolicy: false,
+    ignorePublicAcls: true,
+    restrictPublicBuckets: false,
+  }
+)
+
+// Create a bucket policy to allow public read of all objects in the "public/" folder
+const agentAiAssetsBucketBucketPolicy = new aws.s3.BucketPolicy(
+  `gescorpgo-${pulumi.getStack()}-agent-ai-assets-bucket-policy`,
+  {
+    bucket: agentAiAssetsBucket.bucket,
+    policy: pulumi.all([agentAiAssetsBucket.bucket]).apply(([bucketName]) =>
+      JSON.stringify({
+        Version: '2012-10-17',
+        Statement: [
+          {
+            Effect: 'Allow',
+            Principal: '*',
+            Action: ['s3:GetObject'],
+            Resource: [`arn:aws:s3:::${bucketName}/public/*`],
+          },
+        ],
+      })
+    ),
+  },
+  { dependsOn: [agentAiAssetsBucketPublicAccessBlock] }
+)
+
+//  -------------------------
 const reportServiceDevBucket = new aws.s3.Bucket(
   `gescorpgo-report-service-${pulumi.getStack()}-bucket`,
   {
     bucket: `gescorpgo-report-service-${pulumi.getStack()}-bucket`,
-  }
+  },
+  { protect: true }
 )
 
 // Allow public access to the bucket
@@ -47,7 +91,8 @@ const gescorpgoCompressedImagesDevBucket = new aws.s3.Bucket(
   'gescorpgo-compressed-images-dev-bucket',
   {
     bucket: 'gescorpgo-compressed-images-dev-bucket',
-  }
+  },
+  { protect: true }
 )
 
 // Allow public access to the new bucket
@@ -91,7 +136,8 @@ const layersDevBucket = new aws.s3.Bucket(
   `gescorpgo-layers-${pulumi.getStack()}-bucket`,
   {
     bucket: `gescorpgo-layers-${pulumi.getStack()}-bucket`,
-  }
+  },
+  { protect: true }
 )
 
 const devApiGateway = new aws.apigateway.RestApi('DevApiGateway', {
