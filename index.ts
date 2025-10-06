@@ -43,6 +43,49 @@ const agentAiAssetsBucketBucketPolicy = new aws.s3.BucketPolicy(
   { dependsOn: [agentAiAssetsBucketPublicAccessBlock] }
 )
 
+const agentAiSessionDevBucket = new aws.s3.Bucket(
+  `gescorpgo-${pulumi.getStack()}-agent-ai-session-bucket`,
+  {
+    bucket: `gescorpgo-${pulumi.getStack()}-agent-ai-session-bucket`,
+  },
+  { protect: true }
+)
+
+// Allow public access to the agent AI session bucket
+const agentAiSessionDevBucketPublicAccessBlock =
+  new aws.s3.BucketPublicAccessBlock(
+    `gescorpgo-${pulumi.getStack()}-agent-ai-session-bucket-public-access-block`,
+    {
+      bucket: agentAiSessionDevBucket.id,
+      blockPublicAcls: true,
+      blockPublicPolicy: false,
+      ignorePublicAcls: true,
+      restrictPublicBuckets: false,
+    }
+  )
+
+// Create a bucket policy to allow public read of all objects in the "public/" folder
+const agentAiSessionDevBucketBucketPolicy = new aws.s3.BucketPolicy(
+  `gescorpgo-${pulumi.getStack()}-agent-ai-session-bucket-policy`,
+  {
+    bucket: agentAiSessionDevBucket.bucket,
+    policy: pulumi.all([agentAiSessionDevBucket.bucket]).apply(([bucketName]) =>
+      JSON.stringify({
+        Version: '2012-10-17',
+        Statement: [
+          {
+            Effect: 'Allow',
+            Principal: '*',
+            Action: ['s3:GetObject'],
+            Resource: [`arn:aws:s3:::${bucketName}/public/*`],
+          },
+        ],
+      })
+    ),
+  },
+  { dependsOn: [agentAiSessionDevBucketPublicAccessBlock] }
+)
+
 //  -------------------------
 const reportServiceDevBucket = new aws.s3.Bucket(
   `gescorpgo-report-service-${pulumi.getStack()}-bucket`,
@@ -50,6 +93,27 @@ const reportServiceDevBucket = new aws.s3.Bucket(
     bucket: `gescorpgo-report-service-${pulumi.getStack()}-bucket`,
   },
   { protect: true }
+)
+
+// Configure CORS for report-service bucket
+const reportServiceDevBucketCors = new aws.s3.BucketCorsConfigurationV2(
+  'report-service-dev-bucket-cors',
+  {
+    bucket: reportServiceDevBucket.bucket,
+    corsRules: [
+      {
+        allowedHeaders: ['*'],
+        allowedMethods: ['GET', 'PUT', 'POST', 'DELETE', 'HEAD'],
+        allowedOrigins: [
+          'http://localhost:5173',
+          'https://gescorpgo-web-staging.herokuapp.com',
+          'https://stg-security.amazingtests.com.br',
+        ],
+        exposeHeaders: ['ETag'],
+        maxAgeSeconds: 3000,
+      },
+    ],
+  }
 )
 
 // Allow public access to the bucket
@@ -162,6 +226,7 @@ new aws.ssm.Parameter('dev-api-gateway-root-resource-id', {
 export const apiGatewayId = devApiGateway.id
 export const apiGatewayRootResourceId = devApiGateway.rootResourceId
 
+export const agentAiSessionDevBucketName = agentAiSessionDevBucket.bucket
 export const reportServiceDevBucketName = reportServiceDevBucket.bucket
 export const gescorpgoCompressedImagesDevBucketName =
   gescorpgoCompressedImagesDevBucket.bucket
